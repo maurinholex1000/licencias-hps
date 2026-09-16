@@ -4,7 +4,7 @@ const FirmaAgenteStep = ({ firma }) => (
   <fieldset className="form-section">
     <legend className="visually-hidden">Firma Digital del Agente</legend>
     <h3>5. Firma Digital del Agente</h3>
-    <FirmaDigital firma={firma} altoInicial={150} label="" />
+    <FirmaDigital firma={firma} altoInicial={200} label="" />
   </fieldset>
 );
 

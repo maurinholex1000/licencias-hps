@@ -8,30 +8,40 @@ const ModalFirmaAmpliada = ({ show, onHide, onConfirm }) => {
 
   useEffect(() => {
     if (!show) return;
-    const canvas = canvasRef.current;
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
-    ctx.strokeStyle = '#001a4d';
-    ctx.lineWidth = 2.4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    setVacia(true);
+    // Esperar a que el modal termine de montar el DOM antes de medir
+    const timer = setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+
+      const ctx = canvas.getContext('2d');
+      // Reset total, escala una sola vez
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.strokeStyle = '#001a4d';
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      setVacia(true);
+    }, 50);
+
+    return () => clearTimeout(timer);
   }, [show]);
 
+  // Coordenadas en CSS px (sin multiplicar por DPR acá, porque el ctx ya está escalado)
   const getCoords = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     const cx = e.touches ? e.touches[0].clientX : e.clientX;
     const cy = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: (cx - rect.left) * dpr, y: (cy - rect.top) * dpr };
+    return { x: cx - rect.left, y: cy - rect.top };
   };
 
   const start = (e) => {
@@ -60,7 +70,11 @@ const ModalFirmaAmpliada = ({ show, onHide, onConfirm }) => {
   const limpiar = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+    // Limpiar en coordenadas internas reales
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
     setVacia(true);
   };
 

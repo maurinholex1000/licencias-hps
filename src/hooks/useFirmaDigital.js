@@ -29,7 +29,10 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
 
     if (dataURLPrevio) {
       const img = new Image();
-      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      img.onload = () => {
+        // Redibujar en coordenadas CSS (ya está escalado por dpr)
+        ctx.drawImage(img, 0, 0, rect.width, altoInicial);
+      };
       img.src = dataURLPrevio;
     }
   }, [altoInicial, colorTrazo, estaVacia]);
@@ -70,35 +73,44 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
     setEstaVacia(true);
     dataURLRef.current = '';
   };
 
   const toDataURL = () => canvasRef.current?.toDataURL('image/png') || '';
 
+  // 🔑 ACÁ ESTÁ LA CORRECCIÓN CLAVE: escalar la imagen entrante al tamaño del canvas destino
   const cargarDesdeDataURL = useCallback((dataURL) => {
     if (!dataURL) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const anchoCSS = rect.width;
+    const altoCSS = canvas.height / (window.devicePixelRatio || 1);
+
     const img = new Image();
     img.onload = () => {
+      // Limpiar en coordenadas internas
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const aspect = img.width / img.height;
-      const canvasAspect = canvas.width / canvas.height;
-      let w, h, x, y;
-      if (aspect > canvasAspect) {
-        w = canvas.width;
-        h = w / aspect;
-        x = 0;
-        y = (canvas.height - h) / 2;
-      } else {
-        h = canvas.height;
-        w = h * aspect;
-        y = 0;
-        x = (canvas.width - w) / 2;
-      }
-      ctx.drawImage(img, x, y, w, h);
+      ctx.restore();
+
+      // Calcular escala para que la firma entre completa sin deformarse
+      const escala = Math.min(anchoCSS / img.width, altoCSS / img.height);
+      const anchoFinal = img.width * escala;
+      const altoFinal = img.height * escala;
+      const x = (anchoCSS - anchoFinal) / 2;
+      const y = (altoCSS - altoFinal) / 2;
+
+      // Dibujar en coordenadas CSS (el ctx ya está escalado por dpr)
+      ctx.drawImage(img, x, y, anchoFinal, altoFinal);
+
       setEstaVacia(false);
       dataURLRef.current = dataURL;
     };
