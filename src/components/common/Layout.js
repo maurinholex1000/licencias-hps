@@ -10,7 +10,7 @@ const Layout = () => {
         <Outlet />
       </Container>
       <footer className="text-center py-3 text-muted small">
-        Desarrollado por <strong>Lic. Juan E. Orgas</strong> con IA © 2026
+       
       </footer>
     </>
   );

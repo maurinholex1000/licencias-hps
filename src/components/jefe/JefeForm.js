@@ -3,22 +3,23 @@ import { Form, Button, Card } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { useLicencia } from '../../context/LicenciaContext';
 import { useFirmaDigital } from '../../hooks/useFirmaDigital';
+import { useAuthJefe } from '../../hooks/useAuthJefe';
 import { detectarSolapamiento } from '../../utils/licencias';
-import { MESES } from '../../utils/constantes';
 import {
   generarPDFBase,
   preservarAnexosDesdeOriginal,
   descargarBlob,
 } from '../../services/pdfService';
+import LoginJefe from './LoginJefe';
 import CargarPdfAgente from './CargarPdfAgente';
 import DictamenJefeStep from './DictamenJefeStep';
 import ReemplazantesStep from './ReemplazantesStep';
 import FirmaJefeStep from './FirmaJefeStep';
 import DocumentoOficialPDF from '../pdf/DocumentoOficialPDF';
-import BadgeSaldosRRHH from '../agente/BadgeSaldosRRHH';
 
 const JefeForm = () => {
-  const { jefe, setJefe, metadatosPdf, setMetadatosPdf } = useLicencia();
+  const { jefe, setJefe, metadatosPdf } = useLicencia();
+  const { jefe: jefeAutenticado, autenticado, loading: loadingAuth, error: errorAuth, autenticar, cerrarSesion } = useAuthJefe();
   const [panelVisible, setPanelVisible] = useState(false);
   const [archivoOriginal, setArchivoOriginal] = useState(null);
   const [generando, setGenerando] = useState(false);
@@ -26,6 +27,19 @@ const JefeForm = () => {
 
   const actualizarCampo = (campo, valor) => {
     setJefe((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  const handleLogin = async (cuil, password) => {
+    try {
+      const data = await autenticar(cuil, password);
+      // Autocompletar datos del jefe desde la planilla
+      actualizarCampo('jefeNombre', data.nombre);
+      actualizarCampo('jefeServicio', data.servicio);
+      actualizarCampo('jefeHospital', data.hospital);
+      toast.success(`✅ Bienvenido/a, ${data.nombre}`);
+    } catch (err) {
+      // El hook ya guarda el error
+    }
   };
 
   const handlePdfCargado = (metadatos, file) => {
@@ -73,12 +87,38 @@ const JefeForm = () => {
     }
   };
 
+  // 🔒 Si no está autenticado → mostrar login
+  if (!autenticado) {
+    return <LoginJefe onLogin={handleLogin} loading={loadingAuth} error={errorAuth} />;
+  }
+
+  // ✅ Autenticado → mostrar panel original
   return (
     <>
       <Form onSubmit={(e) => e.preventDefault()}>
-        <h2 className="text-center fw-bold mb-4" style={{ color: 'var(--color-jefe)' }}>
-          Portal de Autorización — Jefaturas
-        </h2>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h2 className="fw-bold mb-0" style={{ color: 'var(--color-jefe)' }}>
+            Portal de Autorización — Jefaturas
+          </h2>
+          <div className="text-end">
+            <div className="small text-muted">
+              <i className="bi bi-person-check me-1"></i>
+              <strong>{jefeAutenticado?.nombre}</strong>
+            </div>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => {
+                cerrarSesion();
+                setPanelVisible(false);
+                setArchivoOriginal(null);
+              }}
+            >
+              <i className="bi bi-box-arrow-right me-1"></i>
+              Cerrar sesión
+            </Button>
+          </div>
+        </div>
 
         <CargarPdfAgente onCargado={handlePdfCargado} />
 
@@ -100,8 +140,6 @@ const JefeForm = () => {
                 <span className="badge bg-primary">{metadatosPdf.totalGeneral} días</span>
               </Card.Body>
             </Card>
-
-            <BadgeSaldosRRHH />
 
             <DictamenJefeStep
               jefe={jefe}

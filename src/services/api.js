@@ -42,3 +42,30 @@ export const formatearFechaActualizacion = (fecha) => {
   }
   return fecha;
 };
+
+// ============ NUEVO: login de jefes ============
+// export const loginJefe = async (cuil, password) => {
+//   if (!cuil || !cuil.trim()) throw new Error('CUIL requerido');
+//   if (!password) throw new Error('Contraseña requerida');
+
+//   const url = `${URL_API}?accion=login&param=${encodeURIComponent(cuil.trim())}&password=${encodeURIComponent(password)}`;
+//   const res = await fetch(url);
+//   if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+
+//   const data = await res.json();
+//   if (!data.autenticado) {
+//     const msg = data.messages?.[0] || 'CUIL o contraseña incorrectos';
+//     throw new Error(msg);
+//   }
+//   return data.data; // { cuil, nombre, servicio, hospital }
+// };
+
+export const loginJefe = async (cuil, password) => {
+  const url = `${URL_API}?accion=login&cuil=${encodeURIComponent(cuil)}&password=${encodeURIComponent(password)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.autenticado) {
+    throw new Error(data.messages?.[0] || 'CUIL o contraseña incorrectos');
+  }
+  return data.data;
+};

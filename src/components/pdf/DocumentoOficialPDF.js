@@ -32,14 +32,25 @@ const DocumentoOficialPDF = ({
   const emisionOpt = agente.emisionOpt || agente.fechaEmision || 'HOY';
   const dirigido = agente.dirigido || 'DIRECTOR DEL HOSPITAL PABLO SORIA';
 
-  const licDia = agente.licDia || (agente.fechaInicio ? agente.fechaInicio.split('-')[2] : '……');
-  const licMes = agente.licMes || (agente.fechaInicio ? MESES[Number(agente.fechaInicio.split('-')[1]) - 1] : '…………');
-  const licAnio = agente.licAnio || (agente.fechaInicio ? agente.fechaInicio.split('-')[0].substring(2) : '……');
+  const licDia = agente.licDia || (agente.fechaInicio ? agente.fechaInicio.split('-')[2] : '');
+  const licMes = agente.licMes || (agente.fechaInicio ? MESES[Number(agente.fechaInicio.split('-')[1]) - 1] : '');
+  const licAnio = agente.licAnio || (agente.fechaInicio ? agente.fechaInicio.split('-')[0].substring(2) : '');
 
-  // Textos y valores por defecto para cuando genera solo el Agente
-  let fechaJefeStr = <>San Salvador de Jujuy, <span className="puntos-relleno" style={{ width: 35 }}>……</span> de <span className="puntos-relleno" style={{ width: 100 }}>…………………………………………</span> de 20<span className="puntos-relleno" style={{ width: 25 }}>……</span></>;
-  let dictamenHTML = 'Atento a lo solicitado, SI / NO autorizo a tomar ………. días ………. corridos y ………. hábiles a partir del día ………. / ………. / ………. Considerando que SI / NO debe designarse remplazante. -';
-  let reemplazosHTML = 'PROPONIENDO A: ……………………………………………………………………. DNI N° ………………………. Cant. Dias ……….<br>PROPONIENDO A: ……………………………………………………………………. DNI N° ………………………. Cant. Dias ……….<br>PROPONIENDO A: ……………………………………………………………………. DNI N° ………………………. Cant. Dias ……….';
+  // IMPORTANTE: Se reemplazaron los caracteres '……' por espacios en blanco '\u00A0'
+  let fechaJefeStr = (
+    <>
+      San Salvador de Jujuy,{' '}
+      <span className="puntos-relleno" style={{ minWidth: 35 }}>{'\u00A0'}</span>{' '}
+      de{' '}
+      <span className="puntos-relleno" style={{ minWidth: 120 }}>{'\u00A0'}</span>{' '}
+      de 20
+      <span className="puntos-relleno" style={{ minWidth: 25 }}>{'\u00A0'}</span>
+    </>
+  );
+
+  let dictamenHTML = 'Atento a lo solicitado, SI / NO autorizo a tomar <span class="puntos-relleno" style="min-width:30px; display:inline-block">&nbsp;</span> días <span class="puntos-relleno" style="min-width:40px; display:inline-block">&nbsp;</span> corridos y <span class="puntos-relleno" style="min-width:40px; display:inline-block">&nbsp;</span> hábiles a partir del día <span class="puntos-relleno" style="min-width:80px; display:inline-block">&nbsp;</span>. Considerando que SI / NO debe designarse remplazante. -';
+  
+  let reemplazosHTML = 'PROPONIENDO A: <span class="puntos-relleno" style="min-width:220px; display:inline-block">&nbsp;</span> DNI N° <span class="puntos-relleno" style="min-width:90px; display:inline-block">&nbsp;</span> Cant. Dias <span class="puntos-relleno" style="min-width:30px; display:inline-block">&nbsp;</span><br>PROPONIENDO A: <span class="puntos-relleno" style="min-width:220px; display:inline-block">&nbsp;</span> DNI N° <span class="puntos-relleno" style="min-width:90px; display:inline-block">&nbsp;</span> Cant. Dias <span class="puntos-relleno" style="min-width:30px; display:inline-block">&nbsp;</span><br>PROPONIENDO A: <span class="puntos-relleno" style="min-width:220px; display:inline-block">&nbsp;</span> DNI N° <span class="puntos-relleno" style="min-width:90px; display:inline-block">&nbsp;</span> Cant. Dias <span class="puntos-relleno" style="min-width:30px; display:inline-block">&nbsp;</span>';
 
   if (esJefe) {
     const {
@@ -80,8 +91,8 @@ const DocumentoOficialPDF = ({
       const n = (r?.nombre || '').trim().toUpperCase();
       const d = (r?.dni || '').trim();
       const c = (r?.dias || '').toString().trim();
-      if (!n) return 'PROPONIENDO A: ……………………………………………………………………. DNI N° ………………………. Cant. Dias ……….';
-      return `PROPONIENDO A: <strong>${n}</strong> DNI N° <strong>${d || '………………'}</strong> Cant. Dias <strong>${c || '……'}</strong>`;
+      if (!n) return 'PROPONIENDO A: <span class="puntos-relleno" style="min-width:220px; display:inline-block">&nbsp;</span> DNI N° <span class="puntos-relleno" style="min-width:90px; display:inline-block">&nbsp;</span> Cant. Dias <span class="puntos-relleno" style="min-width:30px; display:inline-block">&nbsp;</span>';
+      return `PROPONIENDO A: <strong>${n}</strong> DNI N° <strong>${d || '&nbsp;'}</strong> Cant. Dias <strong>${c || '&nbsp;'}</strong>`;
     };
     reemplazosHTML = `${linea(jefe.rep1)}<br>${linea(jefe.rep2)}<br>${linea(jefe.rep3)}`;
   }
@@ -90,103 +101,111 @@ const DocumentoOficialPDF = ({
 
   const contenido = (
     <div className="hoja-oficio" id="documento-oficial-unico">
-      {/* SOLICITUD AGENTE */}
-      <div className="bloque-superior-solicitud">
+      {/* SECCIÓN 1: SOLICITUD AGENTE */}
+      <div className="bloque-seccion bloque-superior-solicitud">
         <div className="encabezado">
           Hospital Pablo Soria
           <br />
           S. S. de Jujuy
         </div>
+        
         <div className="lugar-fecha">
           San Salvador de Jujuy,{' '}
-          <span className="puntos-relleno" style={{ width: 35 }}>
+          <span className="puntos-relleno" style={{ minWidth: 35 }}>
             {emisionOpt === 'HOY' ? hoy.getDate().toString().padStart(2, '0') : '\u00A0'}
           </span>{' '}
           de{' '}
-          <span className="puntos-relleno" style={{ width: 100 }}>
+          <span className="puntos-relleno" style={{ minWidth: 100 }}>
             {emisionOpt === 'HOY' ? MESES[hoy.getMonth()] : '\u00A0'}
           </span>{' '}
           de 20
-          <span className="puntos-relleno" style={{ width: 25 }}>
+          <span className="puntos-relleno" style={{ minWidth: 25 }}>
             {emisionOpt === 'HOY' ? hoy.getFullYear().toString().substring(2) : '\u00A0'}
           </span>
         </div>
 
         <div className="destinatario">
-          AL SEÑOR: <span className="puntos-relleno" style={{ width: 350 }}>{dirigido}</span>
+          AL SEÑOR: <span className="puntos-relleno" style={{ minWidth: 320 }}>{dirigido}</span>
           <br />
           <u>SU DESPACHO</u>
         </div>
 
         <div className="cuerpo-texto">
-          Tengo el agrado de dirigirme a el/la señor/a <strong>DIRECTOR/A</strong> con el objeto de
-          solicitarle me conceda licencia a partir del día{' '}
-          <span className="puntos-relleno" style={{ width: 40 }}>{licDia}</span> de{' '}
-          <span className="puntos-relleno" style={{ width: 110 }}>{licMes}</span> de 20
-          <span className="puntos-relleno" style={{ width: 30 }}>{licAnio}</span> de acuerdo al
-          detalle siguiente:
-        </div>
-
+  Tengo el agrado de dirigirme a el/la señor/a <strong>DIRECTOR/A</strong> con el objeto de
+  solicitarle me conceda licencia a partir del día{' '}
+  <span className="puntos-relleno texto-centrado" style={{ minWidth: 35 }}>
+    {licDia || '\u00A0'}
+  </span>{' '}
+  de{' '}
+  <span className="puntos-relleno texto-centrado" style={{ minWidth: 90 }}>
+    {licMes || '\u00A0'}
+  </span>{' '}
+  de 20
+  <span className="puntos-relleno texto-centrado" style={{ minWidth: 25 }}>
+    {licAnio || '\u00A0'}
+  </span>{' '}
+  de acuerdo al detalle siguiente:
+</div>
         <div className="items-licencia">
           <div className="item-linea">
             a){' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.a_dias || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+              {agente.a_dias || '\u00A0'}
             </span>{' '}
             días de licencia anual ordinaria con Art 56° en caso de corresponder año 20
-            <span className="puntos-relleno" style={{ width: 40 }}>
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 35 }}>
               {agente.a_anio && agente.a_anio.toLowerCase() !== 'sin determinar'
                 ? agente.a_anio.slice(-2)
-                : '……'}
+                : '\u00A0'}
             </span>
             .-
           </div>
           <div className="item-linea">
             b){' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.b_dias || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+              {agente.b_dias || '\u00A0'}
             </span>{' '}
             días de licencia por{' '}
-            <span className="puntos-relleno" style={{ width: 220 }}>
-              {agente.b_motivo || '………………………………………………'}
+            <span className="puntos-relleno" style={{ minWidth: 200 }}>
+              {agente.b_motivo || '\u00A0'}
             </span>{' '}
             según artículo N°{' '}
-            <span className="puntos-relleno" style={{ width: 30 }}>
-              {agente.b_articulo || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 30 }}>
+              {agente.b_articulo || '\u00A0'}
             </span>{' '}
             de la ley N°{' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.b_ley || '………………'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 45 }}>
+              {agente.b_ley || '\u00A0'}
             </span>
           </div>
           <div className="item-linea">
             c){' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.c_dias || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+              {agente.c_dias || '\u00A0'}
             </span>{' '}
             días de licencia por guardias realizadas. -{' '}
             {agente.c_horas > 0 && <em>({agente.c_horas} Hs)</em>}
           </div>
           <div className="item-linea">
             d){' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.d_dias || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+              {agente.d_dias || '\u00A0'}
             </span>{' '}
             días de licencia por recargo. -{' '}
             {agente.d_horas > 0 && <em>({agente.d_horas} Hs)</em>}
           </div>
           <div className="item-linea">
             e){' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.e_dias || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+              {agente.e_dias || '\u00A0'}
             </span>{' '}
             días de licencia por feriado. -{' '}
             {agente.e_horas > 0 && <em>({agente.e_horas} Hs)</em>}
           </div>
           <div className="item-linea">
             f){' '}
-            <span className="puntos-relleno" style={{ width: 45 }}>
-              {agente.f_dias || '……'}
+            <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+              {agente.f_dias || '\u00A0'}
             </span>{' '}
             días de licencia por horas nocturnas. -{' '}
             {agente.f_horas > 0 && <em>({agente.f_horas} Hs)</em>}
@@ -194,24 +213,24 @@ const DocumentoOficialPDF = ({
         </div>
 
         <div className="totales-bloque">
-          <span className="puntos-relleno" style={{ width: 45 }}>
-            {agente.totalCorridos}
+          <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+            {agente.totalCorridos || '\u00A0'}
           </span>{' '}
           CORRIDOS (a partir de:{' '}
-          <span className="puntos-relleno" style={{ width: 140 }}>
-            {agente.corridosDetalle || '………………………………………………'}
+          <span className="puntos-relleno texto-centrado" style={{ minWidth: 130 }}>
+            {agente.corridosDetalle || '\u00A0'}
           </span>{' '}
           )<br />
-          <span className="puntos-relleno" style={{ width: 45 }}>
-            {agente.totalHabiles}
+          <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+            {agente.totalHabiles || '\u00A0'}
           </span>{' '}
           HABILES (los días:{' '}
-          <span className="puntos-relleno" style={{ width: 260 }}>
-            {agente.habilesDetalle || '……………………………………………………………………………………'}
+          <span className="puntos-relleno texto-centrado" style={{ minWidth: 240 }}>
+            {agente.habilesDetalle || '\u00A0'}
           </span>{' '}
           )<br />
-          <span className="puntos-relleno" style={{ width: 45 }}>
-            {agente.totalGeneral}
+          <span className="puntos-relleno texto-centrado" style={{ minWidth: 40 }}>
+            {agente.totalGeneral || '\u00A0'}
           </span>{' '}
           TOTAL DE DIAS DE LICENCIA
         </div>
@@ -236,10 +255,12 @@ const DocumentoOficialPDF = ({
         </table>
       </div>
 
-      {/* SECCIÓN AUTORIZACIÓN JEFE DE SERVICIO (SIEMPRE VISIBLE) */}
-      <div className="seccion-autorizacion">
+      <div className="linea-separadora-puntos" />
+
+      {/* SECCIÓN 2: AUTORIZACIÓN JEFE DE SERVICIO */}
+      <div className="bloque-seccion seccion-autorizacion">
         <div className="autorizacion-contenido">
-          <div className="lugar-fecha" style={{ marginBottom: 15, textAlign: 'right' }}>
+          <div className="lugar-fecha" style={{ marginBottom: 12, textAlign: 'right' }}>
             {fechaJefeStr}
           </div>
           <div
@@ -257,23 +278,15 @@ const DocumentoOficialPDF = ({
             de los servicios, la presente autorización corresponde a una necesidad del mismo. -
           </div>
 
-          <div style={{ marginLeft: 'auto', width: 220, textAlign: 'center', marginTop: 15 }}>
+          <div className="contenedor-firma-jefe">
             {firmaJefeDataURL && (
               <img
                 className="imagen-firma-render"
                 src={firmaJefeDataURL}
                 alt="Firma jefe"
-                style={{ margin: '0 auto 3px auto' }}
               />
             )}
-            <div
-              style={{
-                borderTop: '1px dotted #000',
-                paddingTop: 3,
-                fontWeight: 'bold',
-                fontSize: 11,
-              }}
-            >
+            <div className="linea-firma-jefe">
               {esJefe ? (
                 <>
                   {jefe.jefeNombre.toUpperCase()}
@@ -302,67 +315,54 @@ const DocumentoOficialPDF = ({
         </div>
       </div>
 
-      {/* SECCIÓN RRHH Y SALDOS */}
-      <div className="seccion-rrhh">
+      <div className="linea-separadora-puntos" />
+
+      {/* SECCIÓN 3: RRHH Y SALDOS */}
+      <div className="bloque-seccion seccion-rrhh">
         <div className="rrhh-contenido">
-          <div style={{ textAlign: 'right', fontWeight: 'bold', marginBottom: 15 }}>
-            RRHH <span className="puntos-relleno" style={{ width: 30 }}>……</span> de{' '}
-            <span className="puntos-relleno" style={{ width: 110 }}>…………………………………………</span> de 20
-            <span className="puntos-relleno" style={{ width: 25 }}>……</span>
+          <div style={{ textAlign: 'right', fontWeight: 'bold', marginBottom: 12 }}>
+            RRHH <span className="puntos-relleno" style={{ minWidth: 30 }}>{'\u00A0'}</span> de{' '}
+            <span className="puntos-relleno" style={{ minWidth: 130 }}>{'\u00A0'}</span> de 20
+            <span className="puntos-relleno" style={{ minWidth: 25 }}>{'\u00A0'}</span>
           </div>
           <div className="cuerpo-texto" style={{ textIndent: 0, marginBottom: 10 }}>
             <strong>VISTO:</strong> La presente autorización de licencia, se informa que,{' '}
             <strong>SI / NO</strong> corresponde acceder a lo solicitado, según disposiciones
             vigentes, certificando que le corresponde un total de{' '}
-            <span className="puntos-relleno" style={{ width: 40 }}>…………</span> días compuesto por:
+            <span className="puntos-relleno" style={{ minWidth: 40 }}>{'\u00A0'}</span> días compuesto por:
           </div>
           <table className="tabla-rrhh">
             <tbody>
               <tr>
-                <td style={{ width: '30%' }}>1) ………. Días corridos por</td>
+                <td style={{ width: '35%' }}>1) <span className="puntos-relleno" style={{ minWidth: 40 }}>{'\u00A0'}</span> Días corridos por</td>
                 <td></td>
               </tr>
               <tr>
-                <td style={{ width: '30%' }}>2) ………. Días hábiles por</td>
+                <td style={{ width: '35%' }}>2) <span className="puntos-relleno" style={{ minWidth: 40 }}>{'\u00A0'}</span> Días hábiles por</td>
                 <td></td>
               </tr>
             </tbody>
           </table>
 
-          {/* CUADRO INFORMATIVO DE SALDOS RRHH */}
-          {saldos && (
-            <div
-              style={{
-                border: '1px dashed #444',
-                padding: '6px 10px',
-                marginTop: 15,
-                width: '60%',
-                fontSize: '10px',
-                lineHeight: 1.3,
-                float: 'left',
-              }}
-            >
-              <strong>Saldos Verificados de RRHH:</strong>
-              <br />
-              • LAO: {saldos.laoTotal} días — ({saldos.laoDetalle})
-              <br />
-              • COMPENSATORIOS: {saldos.compensatorios} Hs.
-              <br />• PENDIENTES A LA FECHA: {saldos.actualizacion}
-            </div>
-          )}
+          <div className="rrhh-bottom-wrapper">
+            {saldos ? (
+              <div className="cuadro-saldos-rrhh">
+                <strong>Saldos Verificados de RRHH:</strong>
+                <br />
+                • LAO: {saldos.laoTotal} días — ({saldos.laoDetalle})
+                <br />
+                • COMPENSATORIOS: {saldos.compensatorios} Hs.
+                <br />• PENDIENTES A LA FECHA: {saldos.actualizacion}
+              </div>
+            ) : (
+              <div style={{ flex: 1 }} />
+            )}
 
-          <div
-            style={{
-              marginTop: 45,
-              float: 'right',
-              width: 180,
-              textAlign: 'center',
-              borderTop: '1px dotted #000',
-              paddingTop: 3,
-              fontWeight: 'bold',
-            }}
-          >
-            Firma del Jefe R.R.H.H.
+            <div className="contenedor-firma-rrhh">
+              <div className="linea-firma-rrhh">
+                Firma del Jefe R.R.H.H.
+              </div>
+            </div>
           </div>
         </div>
       </div>
