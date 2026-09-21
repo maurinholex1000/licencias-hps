@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 
-export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = {}) => {
+export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = {}) => {
   const canvasRef = useRef(null);
   const [estaVacia, setEstaVacia] = useState(true);
   const dibujandoRef = useRef(false);
@@ -15,19 +15,16 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     const dpr = window.devicePixelRatio || 1;
     const dataURLPrevio = !estaVacia && dataURLRef.current ? dataURLRef.current : null;
 
-    // Buffer interno (píxeles reales del canvas)
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(altoInicial * dpr);
 
-    // Tamaño visual (CSS px)
     canvas.style.width = '100%';
     canvas.style.height = `${altoInicial}px`;
 
-    // Sin ctx.scale → trabajamos siempre en píxeles del buffer
     const ctx = canvas.getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.strokeStyle = colorTrazo;
-    ctx.lineWidth = 1.8 * dpr; // grosor escalado por DPR para que se vea igual
+    ctx.lineWidth = 3.5 * dpr; // Trazo grueso y legible
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -40,15 +37,12 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     }
   }, [altoInicial, colorTrazo, estaVacia]);
 
-  // 🔑 Coordenadas del mouse en píxeles del BUFFER (no del CSS)
   const getCoords = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     const cx = e.touches ? e.touches[0].clientX : e.clientX;
     const cy = e.touches ? e.touches[0].clientY : e.clientY;
 
-    // Escalar de CSS px a píxeles del buffer interno
     const escalaX = canvas.width / rect.width;
     const escalaY = canvas.height / rect.height;
 
@@ -91,31 +85,62 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     dataURLRef.current = '';
   };
 
-  const toDataURL = () => canvasRef.current?.toDataURL('image/png') || '';
-
-  const cargarDesdeDataURL = useCallback((dataURL) => {
-    if (!dataURL) return;
+  // ✂️ FUNCIÓN DE AUTOCROP (Recorta el lienzo al tamaño real de la firma)
+  const obtenerDataURLRecortado = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || estaVacia) return '';
+
     const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
 
-    const img = new Image();
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let minX = width, minY = height, maxX = 0, maxY = 0;
+    let tieneTrazo = false;
 
-      // Escalar la firma al tamaño del buffer manteniendo aspecto
-      const escala = Math.min(canvas.width / img.width, canvas.height / img.height);
-      const w = img.width * escala;
-      const h = img.height * escala;
-      const x = (canvas.width - w) / 2;
-      const y = (canvas.height - h) / 2;
+    // Escanear píxeles visibles (alpha > 0)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha > 10) { // Si el píxel no es transparente
+          tieneTrazo = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
 
-      ctx.drawImage(img, x, y, w, h);
-      setEstaVacia(false);
-      dataURLRef.current = dataURL;
-    };
-    img.src = dataURL;
-  }, []);
+    if (!tieneTrazo) return '';
+
+    // Añadir margen mínimo (padding) alrededor del trazo
+    const padding = 10;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(width, maxX + padding);
+    maxY = Math.min(height, maxY + padding);
+
+    const cropWidth = maxX - minX;
+    const cropHeight = maxY - minY;
+
+    // Crear un canvas temporal ajustado al tamaño recortado
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = cropWidth;
+    tempCanvas.height = cropHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    tempCtx.drawImage(
+      canvas,
+      minX, minY, cropWidth, cropHeight,
+      0, 0, cropWidth, cropHeight
+    );
+
+    return tempCanvas.toDataURL('image/png');
+  };
+
+  const toDataURL = () => obtenerDataURLRecortado() || canvasRef.current?.toDataURL('image/png') || '';
 
   useEffect(() => {
     inicializar();
@@ -128,7 +153,6 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     estaVacia,
     limpiar,
     toDataURL,
-    cargarDesdeDataURL,
     handlers: {
       onMouseDown: onStart,
       onMouseMove: onMove,

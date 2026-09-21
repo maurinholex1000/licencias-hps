@@ -21,7 +21,7 @@ import DocumentoOficialPDF from '../pdf/DocumentoOficialPDF';
 const AgenteForm = () => {
   const { agente, setAgente } = useLicencia();
   const [generando, setGenerando] = useState(false);
-  const firma = useFirmaDigital({ altoInicial: 150 });
+  const firma = useFirmaDigital({ altoInicial: 300 });
 
   // Recalcular cómputos al cambiar cualquier dato relevante
   useEffect(() => {
