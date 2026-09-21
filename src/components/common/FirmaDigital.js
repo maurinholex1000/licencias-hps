@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button } from 'react-bootstrap';
-import { useFirmaDigital } from '../../hooks/useFirmaDigital';
 import ModalFirmaAmpliada from './ModalFirmaAmpliada';
 
 const FirmaDigital = ({ firma, altoInicial = 150, label = 'Firma Digital' }) => {
@@ -13,9 +12,29 @@ const FirmaDigital = ({ firma, altoInicial = 150, label = 'Firma Digital' }) => 
   return (
     <>
       {label && <label className="fw-bold mb-1 d-block">{label}</label>}
-      <div className="contenedor-canvas-firma">
-        <canvas ref={firma.canvasRef} {...firma.handlers} />
+
+      <div
+        className="contenedor-canvas-firma"
+        style={{
+          height: `${altoInicial}px`,       // altura fija del contenedor
+          minHeight: `${altoInicial}px`,
+          maxHeight: `${altoInicial}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        <canvas
+          ref={firma.canvasRef}
+          {...firma.handlers}
+          style={{
+            width: '100%',
+            height: `${altoInicial}px`,      // altura fija del canvas
+            display: 'block',
+            touchAction: 'none',
+          }}
+        />
       </div>
+
       <div className="d-flex gap-2 mt-2">
         <Button variant="danger" size="sm" onClick={firma.limpiar}>
           <i className="bi bi-trash me-1"></i> Borrar Firma
@@ -24,6 +43,7 @@ const FirmaDigital = ({ firma, altoInicial = 150, label = 'Firma Digital' }) => 
           <i className="bi bi-zoom-in me-1"></i> Ampliar
         </Button>
       </div>
+
       <ModalFirmaAmpliada
         show={showModal}
         onHide={() => setShowModal(false)}

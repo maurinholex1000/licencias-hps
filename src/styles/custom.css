@@ -58,14 +58,18 @@ body {
   border-radius: 6px;
   overflow: hidden;
   touch-action: none;
+  position: relative;
+  width: 100%;
+  /* La altura la define el inline style del componente (altoInicial) */
 }
+
 .contenedor-canvas-firma canvas {
   display: block;
   background: #ffffff;
   cursor: crosshair;
   width: 100%;
+  /* La altura la define el inline style del componente */
 }
-
 /* === Tabs de licencia === */
 .selector-grupo-licencia {
   display: flex;

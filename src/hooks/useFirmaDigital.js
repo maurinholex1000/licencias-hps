@@ -15,34 +15,47 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     const dpr = window.devicePixelRatio || 1;
     const dataURLPrevio = !estaVacia && dataURLRef.current ? dataURLRef.current : null;
 
-    canvas.width = rect.width * dpr;
-    canvas.height = altoInicial * dpr;
+    // Buffer interno (píxeles reales del canvas)
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(altoInicial * dpr);
+
+    // Tamaño visual (CSS px)
+    canvas.style.width = '100%';
     canvas.style.height = `${altoInicial}px`;
 
+    // Sin ctx.scale → trabajamos siempre en píxeles del buffer
     const ctx = canvas.getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
     ctx.strokeStyle = colorTrazo;
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 1.8 * dpr; // grosor escalado por DPR para que se vea igual
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     if (dataURLPrevio) {
       const img = new Image();
       img.onload = () => {
-        // Redibujar en coordenadas CSS (ya está escalado por dpr)
-        ctx.drawImage(img, 0, 0, rect.width, altoInicial);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       };
       img.src = dataURLPrevio;
     }
   }, [altoInicial, colorTrazo, estaVacia]);
 
+  // 🔑 Coordenadas del mouse en píxeles del BUFFER (no del CSS)
   const getCoords = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
     const cx = e.touches ? e.touches[0].clientX : e.clientX;
     const cy = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: cx - rect.left, y: cy - rect.top };
+
+    // Escalar de CSS px a píxeles del buffer interno
+    const escalaX = canvas.width / rect.width;
+    const escalaY = canvas.height / rect.height;
+
+    return {
+      x: (cx - rect.left) * escalaX,
+      y: (cy - rect.top) * escalaY,
+    };
   };
 
   const onStart = (e) => {
@@ -73,44 +86,31 @@ export const useFirmaDigital = ({ altoInicial = 150, colorTrazo = '#001a4d' } = 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
     setEstaVacia(true);
     dataURLRef.current = '';
   };
 
   const toDataURL = () => canvasRef.current?.toDataURL('image/png') || '';
 
-  // 🔑 ACÁ ESTÁ LA CORRECCIÓN CLAVE: escalar la imagen entrante al tamaño del canvas destino
   const cargarDesdeDataURL = useCallback((dataURL) => {
     if (!dataURL) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const anchoCSS = rect.width;
-    const altoCSS = canvas.height / (window.devicePixelRatio || 1);
 
     const img = new Image();
     img.onload = () => {
-      // Limpiar en coordenadas internas
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
 
-      // Calcular escala para que la firma entre completa sin deformarse
-      const escala = Math.min(anchoCSS / img.width, altoCSS / img.height);
-      const anchoFinal = img.width * escala;
-      const altoFinal = img.height * escala;
-      const x = (anchoCSS - anchoFinal) / 2;
-      const y = (altoCSS - altoFinal) / 2;
+      // Escalar la firma al tamaño del buffer manteniendo aspecto
+      const escala = Math.min(canvas.width / img.width, canvas.height / img.height);
+      const w = img.width * escala;
+      const h = img.height * escala;
+      const x = (canvas.width - w) / 2;
+      const y = (canvas.height - h) / 2;
 
-      // Dibujar en coordenadas CSS (el ctx ya está escalado por dpr)
-      ctx.drawImage(img, x, y, anchoFinal, altoFinal);
-
+      ctx.drawImage(img, x, y, w, h);
       setEstaVacia(false);
       dataURLRef.current = dataURL;
     };

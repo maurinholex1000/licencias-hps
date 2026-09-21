@@ -1,4 +1,4 @@
-import { Form, Row, Col, Button, ButtonGroup } from 'react-bootstrap';
+import { Form, Row, Col, Button, ButtonGroup, Alert } from 'react-bootstrap';
 import { TIPOS_NOVEDAD_ESPECIAL } from '../../utils/constantes';
 
 const DetalleLicenciasStep = ({ agente, onChange }) => {
@@ -65,6 +65,40 @@ const DetalleLicenciasStep = ({ agente, onChange }) => {
   };
 
   const novedadActual = TIPOS_NOVEDAD_ESPECIAL[agente.b_novedad];
+
+  // ============================================================
+  // VALIDACIÓN DE COMPENSATORIOS
+  // Solo se evalúa cuando grupoActivo === 'compensatorios'
+  // Regla: si hay días, debe haber horas; si hay horas, debe haber días.
+  // ============================================================
+  const compensatoriosKeys = ['c', 'd', 'e', 'f'];
+  const compensatoriosLabels = {
+    c: 'Guardias',
+    d: 'Recargos',
+    e: 'Feriados',
+    f: 'Nocturnas',
+  };
+
+  const erroresCompensatorios = compensatoriosKeys.reduce((acc, k) => {
+    const dias = Number(agente[`${k}_dias`]) || 0;
+    const horas = Number(agente[`${k}_horas`]) || 0;
+
+    if (dias > 0 && horas === 0) {
+      acc[k] = 'Debe completar las horas.';
+    } else if (horas > 0 && dias === 0) {
+      acc[k] = 'Debe completar los días.';
+    }
+    return acc;
+  }, {});
+
+  const hayErroresCompensatorios = Object.keys(erroresCompensatorios).length > 0;
+
+  // Validar si el usuario ya escribió algo en algún campo de compensatorios
+  const tocoAlgunCampoCompensatorios = compensatoriosKeys.some((k) => {
+    const dias = Number(agente[`${k}_dias`]) || 0;
+    const horas = Number(agente[`${k}_horas`]) || 0;
+    return dias > 0 || horas > 0;
+  });
 
   return (
     <fieldset className="form-section">
@@ -193,37 +227,72 @@ const DetalleLicenciasStep = ({ agente, onChange }) => {
       {grupoActivo === 'compensatorios' && (
         <div>
           <h6 className="text-primary mb-3">⏳ Licencias por Tareas Compensatorias</h6>
+
+          {/* 🔔 MENSAJE INFORMATIVO */}
+          <Alert variant="info" className="py-2 small mb-3">
+            <i className="bi bi-info-circle me-1"></i>
+            Complete <strong>tanto los días como las horas</strong> para cada concepto. Si
+            ingresa uno de los dos, el otro también es obligatorio.
+          </Alert>
+
           {[
             { key: 'c', label: 'c) Guardias' },
             { key: 'd', label: 'd) Recargos' },
             { key: 'e', label: 'e) Feriados' },
             { key: 'f', label: 'f) Nocturnas' },
-          ].map(({ key, label }) => (
-            <Row key={key} className="mb-2">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="fw-bold">{label} (Total de Días):</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min="0"
-                    value={agente[`${key}_dias`]}
-                    onChange={(e) => onChange(`${key}_dias`, e.target.value)}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="fw-bold">Su equivalente en Horas:</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min="0"
-                    value={agente[`${key}_horas`]}
-                    onChange={(e) => onChange(`${key}_horas`, e.target.value)}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          ))}
+          ].map(({ key, label }) => {
+            const error = erroresCompensatorios[key];
+            return (
+              <Row key={key} className="mb-2">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">{label} (Total de Días):</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      value={agente[`${key}_dias`]}
+                      onChange={(e) => onChange(`${key}_dias`, e.target.value)}
+                      isInvalid={!!error && Number(agente[`${key}_horas`]) === 0}
+                    />
+                    {error && Number(agente[`${key}_horas`]) === 0 && (
+                      <Form.Control.Feedback type="invalid">
+                        {error}
+                      </Form.Control.Feedback>
+                    )}
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">Su equivalente en Horas:</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      value={agente[`${key}_horas`]}
+                      onChange={(e) => onChange(`${key}_horas`, e.target.value)}
+                      isInvalid={!!error && Number(agente[`${key}_dias`]) === 0}
+                    />
+                    {error && Number(agente[`${key}_dias`]) === 0 && (
+                      <Form.Control.Feedback type="invalid">
+                        {error}
+                      </Form.Control.Feedback>
+                    )}
+                  </Form.Group>
+                </Col>
+              </Row>
+            );
+          })}
+
+          {/* 🚨 RESUMEN DE ERRORES AL PIE */}
+          {tocoAlgunCampoCompensatorios && hayErroresCompensatorios && (
+            <Alert variant="danger" className="py-2 small mt-3 mb-0">
+              <i className="bi bi-exclamation-triangle me-1"></i>
+              <strong>Debe completar días y horas</strong> en:{' '}
+              {Object.keys(erroresCompensatorios)
+                .map((k) => compensatoriosLabels[k])
+                .join(', ')}
+              .
+            </Alert>
+          )}
         </div>
       )}
     </fieldset>
