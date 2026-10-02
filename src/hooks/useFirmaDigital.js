@@ -24,7 +24,7 @@ export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = 
     const ctx = canvas.getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.strokeStyle = colorTrazo;
-    ctx.lineWidth = 3.5 * dpr; // Trazo grueso y legible
+    ctx.lineWidth = 2.4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -85,7 +85,34 @@ export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = 
     dataURLRef.current = '';
   };
 
-  // ✂️ FUNCIÓN DE AUTOCROP (Recorta el lienzo al tamaño real de la firma)
+  // ✨ NUEVA FUNCIÓN: carga una firma desde un dataURL (la que usa el modal ampliado)
+  const cargarDesdeDataURL = useCallback((dataURL) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !dataURL) return;
+
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      // Limpiar antes de dibujar la nueva firma
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Ajustar la imagen al tamaño completo del canvas
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Actualizar estado y referencia para que "toDataURL" y el auto-crop funcionen
+      dataURLRef.current = canvas.toDataURL('image/png');
+      setEstaVacia(false);
+    };
+
+    img.onerror = () => {
+      console.error('No se pudo cargar la imagen de la firma desde el dataURL');
+    };
+
+    img.src = dataURL;
+  }, []);
+
+  // ✂️ AUTOCROP
   const obtenerDataURLRecortado = () => {
     const canvas = canvasRef.current;
     if (!canvas || estaVacia) return '';
@@ -99,11 +126,10 @@ export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = 
     let minX = width, minY = height, maxX = 0, maxY = 0;
     let tieneTrazo = false;
 
-    // Escanear píxeles visibles (alpha > 0)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const alpha = data[(y * width + x) * 4 + 3];
-        if (alpha > 10) { // Si el píxel no es transparente
+        if (alpha > 10) {
           tieneTrazo = true;
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
@@ -115,7 +141,6 @@ export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = 
 
     if (!tieneTrazo) return '';
 
-    // Añadir margen mínimo (padding) alrededor del trazo
     const padding = 10;
     minX = Math.max(0, minX - padding);
     minY = Math.max(0, minY - padding);
@@ -125,7 +150,6 @@ export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = 
     const cropWidth = maxX - minX;
     const cropHeight = maxY - minY;
 
-    // Crear un canvas temporal ajustado al tamaño recortado
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = cropWidth;
     tempCanvas.height = cropHeight;
@@ -153,6 +177,7 @@ export const useFirmaDigital = ({ altoInicial = 250, colorTrazo = '#001a4d' } = 
     estaVacia,
     limpiar,
     toDataURL,
+    cargarDesdeDataURL,
     handlers: {
       onMouseDown: onStart,
       onMouseMove: onMove,

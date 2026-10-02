@@ -23,7 +23,7 @@ const JefeForm = () => {
   const [panelVisible, setPanelVisible] = useState(false);
   const [archivoOriginal, setArchivoOriginal] = useState(null);
   const [generando, setGenerando] = useState(false);
-  const firma = useFirmaDigital({ altoInicial: 300 });
+  const firma = useFirmaDigital({ altoInicial: 200 });
 
   const actualizarCampo = (campo, valor) => {
     setJefe((prev) => ({ ...prev, [campo]: valor }));

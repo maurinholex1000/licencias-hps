@@ -286,6 +286,7 @@ const DocumentoOficialPDF = ({
                 alt="Firma jefe"
               />
             )}
+            {!firmaJefeDataURL && (<div style={{ marginTop: 60 }} />)}
             <div className="linea-firma-jefe">
               {esJefe ? (
                 <>

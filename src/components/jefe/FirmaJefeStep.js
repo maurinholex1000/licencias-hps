@@ -60,7 +60,7 @@ const FirmaJefeStep = ({ firma, jefe, onChange }) => (
     </Row>
 
     <div className="mt-3">
-      <FirmaDigital firma={firma} altoInicial={130} label="Firma Digitalizada del Jefe:" />
+      <FirmaDigital firma={firma} altoInicial={200} label="Firma Digitalizada del Jefe:" />
     </div>
   </fieldset>
 );

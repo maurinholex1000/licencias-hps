@@ -264,14 +264,14 @@ body {
 }
 
 .hoja-oficio .tabla-firmas-solicitante td {
-  width: 33.33%;
+  width: 40%;
   text-align: center;
   padding: 0 4px;
 }
 
 /* 1. Celda de firma del Agente (Tabla superior) */
 .hoja-oficio .celda-dato-render {
-  height: 110px; /* Aumentado de 60px a 110px para dar espacio a la firma grande */
+  height: 180px; /* Aumentado de 60px a 110px para dar espacio a la firma grande */
   vertical-align: bottom;
   text-align: center;
   padding-bottom: 2px;
@@ -383,4 +383,29 @@ body {
     opacity: 1;
     position: static;
   }
+}
+
+/* Reajustar los anchos de las 3 columnas del agente */
+.hoja-oficio .tabla-firmas-solicitante td:nth-child(1) { width: 30%; }
+.hoja-oficio .tabla-firmas-solicitante td:nth-child(2) { width: 25%; }
+.hoja-oficio .tabla-firmas-solicitante td:nth-child(3) { width: 45%; } /* 👈 más ancho para la firma */
+
+/* Asegurar que la celda de firma pueda mostrar la imagen sin recortarla */
+.hoja-oficio .celda-dato-render {
+  height: 110px;
+  vertical-align: bottom;
+  text-align: center;
+  padding-bottom: 2px;
+  overflow: visible;        /* 👈 clave: permite que la imagen sobresalga si es necesario */
+}
+
+/* La imagen del agente específicamente */
+.hoja-oficio .tabla-firmas-solicitante .imagen-firma-render {
+  max-height: 110px !important;
+  max-width: 100% !important;   /* 👈 se ajusta al ancho de la celda */
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
 }
